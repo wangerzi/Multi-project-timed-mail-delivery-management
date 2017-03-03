@@ -43,8 +43,10 @@
 1. 需要打开`php.ini`中的 `php_openssl`扩展，否则`SMTP Connect failed`
 1. 创建数据库 `wq_mail`，执行`wq_mail.sql` 初始化表结构。
 1. 在 `Conf/db.php` 中配置数据库连接信息。
-1. 在 `Conf/mail.php`中配置&&用户名、密码、邮件引用，自动调用函数加载 等信息。
+1. 在 `Conf/mail.php`中配置&&用户名、密码、邮件引用，自动调用函数加载 等信息。  
+
 #####调用（更多请看demo/demo-test.php）：
+
 
     <?php
         require "./MyEmail.class.php";//这里填写MyEmail类的路径。
@@ -57,6 +59,7 @@
         //最后，发邮件或者管理邮件即可。
         $email->addEmailTimeQueue('admin@wj2015.com.cn','对方称呼','邮件名字','内容',time()+20);//延迟20s发送
     ?>
+
 ##Notice
 1. 本系统为原生PHP开发，PHP版本最好在5.3.8以上，以减少MySQL注入等安全问题。
 1. 系统发送邮件的功能由PHPMailer实现，用户可自己制定PHPMailer的路径。
