@@ -8,8 +8,7 @@
  */
 require 'MyEmail.class.php';
 $email = new MyEmail();
-
-if(!empty($_SERVER) || !$argc)//仅能通过命令行刷邮件，不喜欢的，可改为$_SERVER['REMOTE_ADDR'] == $email->mailConf['MAIL_CLIENT_IP']，这样就能用HTTP刷定时邮件，并且仅执行IP才能执行次页面。
+if(!$argc)//仅能通过命令行刷邮件，不喜欢的，可改为$_SERVER['REMOTE_ADDR'] == $email->mailConf['MAIL_CLIENT_IP']，这样就能用HTTP刷定时邮件，并且仅执行IP才能执行次页面。
     die('仅主机访问');
 $sleep = $email->mailConf['MAIL_DEAL_SPACE'];
 while(1) {
