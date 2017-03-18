@@ -6,7 +6,7 @@
  * Date: 2017/3/1
  * Time: 18:42
  * Info: 阅读指南：
- *          建议在 ./demo/demo-test.php中将 MyEmail::addEmailTimeQueue()函数的用法弄清，本系统即可正确使用了。
+ *          建议在 ./demo/demo-test.php中先将 MyEmail::addEmailTimeQueue()函数的用法弄清，本系统即可正确使用了。
  *          ./Conf/db.php 和 ./Conf/mail.php的配置和 php.ini中pdo相关配置项的开启和 php_openssl 配置项的开启，是使用本系统的关键。
  *          本系统实现原理为：
  *              通过调用addEmailTimeQueue()函数，将定时邮件存入数据库 -- 开发者编程时调用。
@@ -96,6 +96,7 @@ class MyEmail
                     VALUES(:email,:title,:name,:content,:for,:fail_callback,0)");
         $data = array(
             ':email'    =>  $email,
+            ':name'     =>  $name,
             ':title'    =>  $title,
             ':content'  =>  $content,
             ':for'      =>  $for,
