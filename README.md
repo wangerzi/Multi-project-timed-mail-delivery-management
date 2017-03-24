@@ -43,7 +43,7 @@
 1. 需要打开`php.ini`中的 `php_openssl`扩展，否则`SMTP Connect failed`
 1. 创建数据库 `wq_mail`，执行`wq_mail.sql` 初始化表结构。
 1. 在 `Conf/db.php` 中配置数据库连接信息。
-1. 在 `Conf/mail.php`中配置&&用户名、密码、邮件引用，自动调用函数加载 等信息。  
+1. 在 `Conf/mail.php`中配置&&用户名、密码、邮件引用，自动调用函数加载 等信息。
 
 #####调用（更多请看demo/demo-test.php）：
 
@@ -67,5 +67,17 @@
 1. 数据库操作使用PDO对象，所以需要在`php.ini`中开启`php_pdo`相关扩展。
 1. 如果使用QQ邮箱，在配置`Conf/mail.php`中的密码时，需要用QQ邮箱独立密码。
 1. 为了避免重复发送邮件 和 端口冲突等问题，time.php只能用命令行执行，无法用HTTP访问。
+1. 如果您的发送内容是函数，并使用了 Thinkphp等框架，请在`Conf/mail.php`中配置`MAIL_CON_EXTRA`中配置入口文件（`index.php`）以及函数所在路径（`Common/function.php`）。
+1. 注意：如果引入入口文件（`index.php`），则需要在`index.php`中加入`chdir(dirname(__FILE__))`改变include相对定位点，否则加载出错。
+
+##Version
+#####1.0.0			2017年5月2日
+第一个版本
+
+#####1.0.1			2017年03月24日
+更改重复发送部分的逻辑错误。
+优化include相对定位点的问题。
+
+初版
 
 **author:Jeffrey Wang**  - *2017年3月2日21:19:49*
