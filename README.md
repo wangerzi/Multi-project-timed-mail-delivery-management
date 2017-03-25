@@ -1,6 +1,8 @@
 #Multi - project timed mail delivery management
+
 **多项目定时邮件发送管理**  
 ##Overview:
+
 本系统可用于处理 多项目定时邮件 冲突问题，邮件发送使用[PHPMailer](https://github.com/PHPMailer/PHPMailer)插件。
   
 系统可实现定时发送固定邮件，定时发送动态邮件（调用自定义函数返回内容），通过 表查询 管理定时队列中的邮件。
@@ -33,6 +35,7 @@
     |
     |--wq_mail.sql                            #数据库文件，内含表结构。
 ##Usage
+
 **Windows:使用 windows.bat 即可**  
 
 **&&Linux:使用 Linux.sh 即可**，若使用 `nohup php time.php &`可实现登出后依旧后台运行
@@ -40,6 +43,7 @@
     文件实质： php time.php
 
 #####配置（Conf/mail.php和Conf/db.php）：
+
 1. 需要打开`php.ini`中的 `php_openssl`扩展，否则`SMTP Connect failed`
 1. 创建数据库 `wq_mail`，执行`wq_mail.sql` 初始化表结构。
 1. 在 `Conf/db.php` 中配置数据库连接信息。
@@ -61,6 +65,7 @@
     ?>
 
 ##Notice
+
 1. 本系统为原生PHP开发，PHP版本最好在5.3.8以上，以减少MySQL注入等安全问题。
 1. 系统发送邮件的功能由PHPMailer实现，用户可自己制定PHPMailer的路径。
 1. 使用时，需要在`php.ini`中开启`php_openssl` 扩展，否则出现SMTP connect failed.错误。
@@ -71,10 +76,13 @@
 1. 注意：如果引入入口文件（`index.php`），则需要在`index.php`中加入`chdir(dirname(__FILE__))`改变include相对定位点，否则加载出错。
 
 ##Version
+
 #####1.0.0			2017年5月2日
+
 第一个版本
 
 #####1.0.1			2017年03月24日
+
 更改重复发送部分的逻辑错误。
 优化include相对定位点的问题。
 
