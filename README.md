@@ -40,7 +40,7 @@
 
 **Windows:使用 windows.bat 即可**  
 
-**&&Linux:使用 Linux.sh 即可**，若使用 `nohup php time.php &`可实现登出后依旧后台运行
+**Linux:使用 Linux.sh 即可**，若使用 `nohup php time.php &`可实现登出后依旧后台运行
   
     文件实质： php time.php
 
@@ -76,6 +76,15 @@
 1. 为了避免重复发送邮件 和 端口冲突等问题，time.php只能用命令行执行，无法用HTTP访问。
 1. 如果您的发送内容是函数，并使用了 Thinkphp等框架，请在`Conf/mail.php`中配置`MAIL_CON_EXTRA`中配置入口文件（`index.php`）以及函数所在路径（`Common/function.php`）。
 1. 注意：如果引入入口文件（`index.php`），则需要在`index.php`中加入`chdir(dirname(__FILE__))`改变include相对定位点，否则加载出错。
+
+        'Conf/mail.php':
+        ...
+        ...
+        //加载框架的入口函数，及得在`index.php`中调用chdir(dirnane(__FILE__))
+        'MAIL_CON_EXTRA'    =>  '../index.php,../LMS/Common/common.php',
+        ...
+        ...
+    
 
 ## Version
 
