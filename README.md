@@ -74,13 +74,13 @@
 1. 数据库操作使用PDO对象，所以需要在`php.ini`中开启`php_pdo`相关扩展。
 1. 如果使用QQ邮箱，在配置`Conf/mail.php`中的密码时，需要用QQ邮箱独立密码。
 1. 为了避免重复发送邮件 和 端口冲突等问题，time.php只能用命令行执行，无法用HTTP访问。
-1. 如果您的发送内容是函数，并使用了 Thinkphp等框架，请在`Conf/mail.php`中配置`MAIL_CON_EXTRA`中配置入口文件（`index.php`）以及函数所在路径（`Common/function.php`）。
+1. 如果您的发送内容是某函数返回值，并且该函数基于 Thinkphp等框架实现，请在`Conf/mail.php`中配置`MAIL_CON_EXTRA`中配置入口文件（`index.php`）以及函数所在路径（`Common/function.php`）。
 1. 注意：如果引入入口文件（`index.php`），则需要在`index.php`中加入`chdir(dirname(__FILE__))`改变include相对定位点，否则加载出错。
 
-        'Conf/mail.php':
+        配置样例('Conf/mail.php'):
         ...
         ...
-        //加载框架的入口函数，及得在`index.php`中调用chdir(dirnane(__FILE__))
+        //加载框架的入口函数，记得在`index.php`中调用chdir(dirnane(__FILE__))
         'MAIL_CON_EXTRA'    =>  '../index.php,../LMS/Common/common.php',
         ...
         ...
