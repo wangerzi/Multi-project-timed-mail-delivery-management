@@ -31,9 +31,9 @@ CREATE TABLE `wq_email_time` (
   `name` varchar(40) DEFAULT NULL COMMENT '姓名',
   `content` text,
   `send_time` int(11) DEFAULT NULL COMMENT '定时发送的时间戳，只看H:i:s，重复时会自动调整时间',
-  `repeat` bit(1) DEFAULT NULL COMMENT '是否重复，重复则+1天之后继续发送',
+  `repeat` tinyint(1) DEFAULT NULL COMMENT '是否重复，重复则+1天之后继续发送',
   `for` varchar(40) DEFAULT NULL COMMENT '用作什么，便于查找',
-  `is_function` bit(1) NOT NULL DEFAULT b'0' COMMENT '标识内容是否是function',
+  `is_function` tinyint(1) NOT NULL DEFAULT b'0' COMMENT '标识内容是否是function',
   `fail_callback` varchar(40) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=33 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='延时邮件发送表';

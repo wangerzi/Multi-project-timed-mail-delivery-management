@@ -11,8 +11,8 @@ return array(
     'MAIL_SMTPAUTH' => true,                //SMTP验证。
     'MAIL_USERNAME' => '',  //用户名
     'MAIL_PASSWORD' => '',  //密码 -- QQ邮箱使用独立密码。
-    'MAIL_FROM' => '',   //邮箱来自 ~~~
-    'MAIL_FROM_NAME' => 'xxx',             //来自的名字
+    'MAIL_FROM' => 'admin@wj2015.com.cn',   //邮箱来自 ~~~
+    'MAIL_FROM_NAME' => 'Wang',             //来自的名字
     'MAIL_IS_HTML' => true,                 //是否是HTML
     'MAIL_CHARSET' => 'utf-8',              //字符集
     'ALT_BODY' => '这是来自xxx的邮件',//简介
@@ -36,7 +36,7 @@ return array(
     'MAIL_ERR_EXTRA'    =>  'extra/error.func.php',
 
     //邮件内容是函数的时候，加载的额外文件，多个文件中间用逗号隔开。
-    'MAIL_CON_EXTRA'    =>  'extra/content.func.php',
+    'MAIL_CON_EXTRA'    =>  '../index.php,../LMS/Common/common.php',
 
     //phpMailer自动加载路径。
     'MAIL_PHPMailer'    =>  './PHPMailer/PHPMailerAutoload.php',

@@ -192,8 +192,11 @@ class MyEmail
                 $content=$arr['content'];
             }
             //处理重复发邮件的情况
-            if(ord($arr['repeat']))
-                $pdo->exec("UPDATE wq_email_time SET send_time = '".($arr['send_time']+86400)."' WHERE id='{$arr['id']}' LIMIT 1;") or die($pdo->errorInfo());
+            if($arr['repeat']) {
+                $newTime = ($arr['send_time']+86400);
+                $newTime = $newTime < time()?$newTime+86400-(time()-$newTime)%86400:$newTime;//避免短时间内重复发送大量同一邮件。
+                $pdo->exec("UPDATE wq_email_time SET send_time = '" . $newTime . "' WHERE id='{$arr['id']}' LIMIT 1;") or die($pdo->errorInfo());
+            }
             else//否则删除。
                 $st_time->execute(array(':id'=>$arr['id']));
             if(empty($content)) {

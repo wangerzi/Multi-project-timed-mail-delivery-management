@@ -3,7 +3,7 @@
 **多项目定时邮件发送管理**  
 ## Overview:
 
-本系统可用于处理 多项目定时邮件 冲突问题，邮件发送使用[PHPMailer](https://github.com/PHPMailer/PHPMailer)插件。
+本系统可用于处理 多项目定时邮件 冲突问题，邮件发送使用[PHPMailer](https://github.com/PHPMailer/PHPMailer)类。
   
 系统可实现定时发送固定邮件，定时发送动态邮件（调用自定义函数返回内容），通过 表查询 管理定时队列中的邮件。
 
@@ -75,25 +75,38 @@
 1. 如果使用QQ邮箱，在配置`Conf/mail.php`中的密码时，需要用QQ邮箱独立密码。
 1. 为了避免重复发送邮件 和 端口冲突等问题，time.php只能用命令行执行，无法用HTTP访问。
 1. 如果您的发送内容是某函数返回值，并且该函数基于 Thinkphp等框架实现，请在`Conf/mail.php`中配置`MAIL_CON_EXTRA`中配置入口文件（`index.php`）以及函数所在路径（`Common/function.php`）。
-1. 注意：如果引入入口文件（`index.php`），则需要在`index.php`中加入`chdir(dirname(__FILE__))`改变include相对定位点，否则加载出错。
+1. 如果您的发送内容是某函数返回值，并且该函数基于 Thinkphp等框架实现，请在`Conf/mail.php`中配置`MAIL_CON_EXTRA`中配置入口文件（`index.php`）或者核心文件(`../ThinkPHP/ThinkPHP.class.php`)+函数所在路径（`Common/function.php`）。
+    1. 对于使用框架的用户，个人建议引入核心文件，因为引入入口文件可能会因为静态缓存等原因导致脚本停止运行。
 
-        配置样例('Conf/mail.php'):
-        ...
-        ...
-        //加载框架的入口函数，记得在`index.php`中调用chdir(dirnane(__FILE__))
-        'MAIL_CON_EXTRA'    =>  '../index.php,../LMS/Common/common.php',
-        ...
-        ...
-    
+            配置样例('Conf/mail.php'):
+            ...
+            ...
+            'MAIL_CON_EXTRA'    =>  '../ThinkPHP/ThinkPHP.class.php,../LMS/Common/functions.php',
+            ...
+            ...
+    1. 注意：如果引入入口文件（`index.php`），则需要在`index.php`中加入`chdir(dirname(__FILE__))`改变include相对定位点，否则加载出错。
+
+            配置样例('Conf/mail.php'):
+            ...
+            ...
+            //加载框架的入口函数，记得在`index.php`中调用chdir(dirnane(__FILE__))
+            'MAIL_CON_EXTRA'    =>  '../index.php,../LMS/Common/functions.php',
+            ...
+            ...
 
 ## Version
 
-##### 1.0.1			2017年03月24日
+##### 1.0.2			`2017年05月8日`
+1. BUG:修复普通定时邮件重复发送的BUG（需要更改wq_email_time中repeat,is_function的数据类型）。
+1. OPT:针对定时邮件积累的优化，当定时过早，只会发一次邮件，而不是重复发n次。
+1. OPT:由于该进程一直开启，Linux重定向输出会占用很大的空间，所以修改了`time.php`中处理逻辑，只输出有价值的信息。
 
-更改重复发送部分的逻辑错误。
-优化include相对定位点的问题。
+##### 1.0.1			`2017年03月24日`
 
-##### 1.0.0			2017年5月2日
+1. BUG:更改重复发送部分的逻辑错误。
+1. OPT:优化include相对定位点的问题。
+
+##### 1.0.0			`2017年5月2日`
 
 第一个版本
 
