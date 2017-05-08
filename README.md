@@ -9,7 +9,7 @@
 
 通过PDO操作MySQL数据库实现邮件定时队列和待发送队列。通过`for`字段可有效区分 项目、发送用户、发送目的，并通过MyEmail类中的delEmailTimeQueue方法进行控制。
 
-线上案例：[学习计划管理系统](http://wj2015.com.cn)。
+线上案例：[学习计划管理系统](https://github.com/wangerzi/LMS-LearningManagementSystem/tree/master)。
 
 源码内置`demo/demo-test.php`用来熟悉使用本系统。
 
