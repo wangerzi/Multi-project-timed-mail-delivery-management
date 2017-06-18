@@ -15,26 +15,45 @@
  *              用户用 批处理或 Linux Shell 执行time.php脚本，实现定时邮件的控制（一直执行着，放在一旁即可）
  *          README.md中也蕴含有不少信息。
  */
+use \wq_email\dev\Db;
+use \wq_email\dev\Redis;
+defined('__MAIL_ROOT__') or define('__MAIL_ROOT__',dirname(__FILE__).'/');
 class MyEmail
 {
     private $loadedFile=array();//已经加载过的文件，避免重复加载。
+    private $handle = null;//存储驱动对象
     //构造函数，配置各种信息
     function __construct()
     {
-        //数据库配置
-        $dbConf=include "Conf/db.php";
         //邮件配置。
-        $this->mailConf=include "Conf/mail.php";
+        $this->mailConf=include __MAIL_ROOT__."Conf/mail.php";
+        $driver = strtolower($this->mailConf['MAIL_DRIVER']);
+        switch ($driver){
+            case 'db':
+                //数据库配置
+                $dbConf = include __MAIL_ROOT__ . "Conf/db.php";
+                if(!class_exists('\wq_email\dev\Db')) {//只在没有的时候加载，避免错误。
+                    //加载驱动文件
+                    $this->includeExtFile('Driver/Db.php');
+                }
+                $this->handle = new db($dbConf);
+                break;
+            case 'redis':
+                $conf = include __MAIL_ROOT__ . 'Conf/redis.php';
+                if(!class_exists('\wq_email\dev\Redis')) {//只在没有的时候加载，避免错误。
+                    $this->includeExtFile(__MAIL_ROOT__ . 'Driver/Redis.php');
+                }
+                $this->handle = new Redis($conf);
+                break;
+            default:
+                echo '不支持的驱动类型';
+                die();
 
-        //创建PDO对象，使用时用prepare方法，将数据过滤放到MySql自己过滤。
-        try {
-            //预先转义 false，增加安全性，PHP版本最好在5.3.8以上，否则某些bug会危及数据库安全。
-            $this->pdo = new PDO($dbConf['type'] . ':host=' . $dbConf['host'] . ';dbname=' . $dbConf['db_name'].';charset=utf8;', $dbConf['username'], $dbConf['pwd'],array(PDO::ATTR_PERSISTENT => true,PDO::ATTR_EMULATE_PREPARES => false));
-        }catch (PDOException $e){
-            die('Error:'.$e->getMessage());
         }
-        //加载phpMailer，预先加载，避免相对定位点改变后加载失败。
-        $this->includeExtFile($this->mailConf['MAIL_PHPMailer']);
+        if(!class_exists('PHPMailer')) {
+            //加载phpMailer，预先加载，避免相对定位点改变后加载失败。
+            $this->includeExtFile(__MAIL_ROOT__ . $this->mailConf['MAIL_PHPMailer']);
+        }
     }
     /*
      * 加入发送队列
@@ -56,24 +75,18 @@ class MyEmail
 
         if($time < time() && $repeat==0)
             return $this->addEmailQueue($email,$name,$title,$content,$for,$fail_callback);
-        $pdo = $this->pdo;
-
-        $data = array(
-            ':email'    =>  $email,
-            ':title'    =>  $title,
-            ':name'     =>  $name,
-            ':content'  =>  $content,
-            ':time'     =>  $time,
-            ':repeat'   =>  intval($repeat)%2,
-            ':for'      =>  $for,
-            ':is_function'=> intval($is_function)%2,
-            ':fail_callback'=> $fail_callback,
-        );
-
-        //添加入数据库。
-        $st=$pdo->prepare("INSERT INTO wq_email_time(`email`, `title`, `name`, `content`, `send_time`,`repeat`, `for`, `is_function`, `fail_callback`)
-                    VALUES(:email,:title,:name,:content,:time,:repeat,:for,:is_function,:fail_callback);") or die('add'.print_r($pdo->errorInfo()));
-        return $st->execute($data);
+        $arr = [
+            'email'     =>  $email,
+            'name'      =>  $name,
+            'title'     =>  $title,
+            'content'   =>  $content,
+            'time'      =>  $time,
+            'for'       =>  $for,
+            'repeat'    =>  intval($repeat)%2,
+            'is_function'   =>  intval($is_function)%2,
+            'fail_callback' =>  $fail_callback,
+        ];
+        return $this->handle->addEmailTimeQueue($arr);
     }
 
     /**
@@ -87,24 +100,18 @@ class MyEmail
      * @param $fail_callback
      * @return bool|int
      */
-    private function addEmailQueue($email,$name,$title,$content,$for,$fail_callback){
+    private function addEmailQueue($email,$name,$title,$content,$for,$fail_callback){//这里的调用逻辑没有采用$arr，因为考虑到redis存储的时候将整个数组全json_encode，如果不经考虑直接传值，可能会出现异常。
         if(empty($email) || empty($content))
             return false;
-
-        $pdo = $this->pdo;
-
-        //添加入数据库。
-        $st = $pdo->prepare("INSERT INTO wq_email(`email`, `title`, `name`, `content`, `for`, `fail_callback`,`error_time`)
-                    VALUES(:email,:title,:name,:content,:for,:fail_callback,0)") or die(print_r($pdo->errorinfo()));
-        $data = array(
-            ':email'    =>  $email,
-            ':name'     =>  $name,
-            ':title'    =>  $title,
-            ':content'  =>  $content,
-            ':for'      =>  $for,
-            ':fail_callback'=> $fail_callback,
-        );
-        return $st->execute($data);
+        $arr = [
+            'email' =>  $email,
+            'name'  =>  $name,
+            'title' =>  $title,
+            'content'   =>  $content,
+            'for'   =>  $for,
+            'fail_callback' =>  $fail_callback,
+        ];
+        return $this->handle->addEmailQueue($arr);
     }
     /**
      * 解析并加载额外文件，通过字符传参的形式，仅限内部使用，已做避免重复加载的处理。
@@ -119,8 +126,12 @@ class MyEmail
             }
         }
     }
+
+    /**
+     * 处理即将发送邮件的函数
+     * @return array
+     */
     public function dealEmailQueue(){
-        $pdo = $this->pdo;
         $info = $this->mailConf;
         $data = array(
             'success'   =>  0,//发送成功的。
@@ -131,13 +142,16 @@ class MyEmail
         //加载额外文件。
         $this->includeExtFile($this->mailConf['MAIL_ERR_EXTRA']);
 
-        //从数据库获取邮件。
-        $emails = $pdo->query("SELECT * FROM wq_email LIMIT {$info['EMAIL_SEND_MAX']}");
+        //通过驱动获取即将发送的邮件
+        $emails = $this->handle->getEmailQueue($info['EMAIL_SEND_MAX']);
+
+        $delEmails = [];
+
         //发送邮件并进行错误处理。
-        while(!!$arr = $emails->fetch()){
+        foreach($emails as $arr){
             //错误次数过多，移除，并执行错误处理。
             if($arr['error_time'] >= 10){
-                $this->delEmailQueue($arr['id']);
+                $delEmails[] = $arr;
 
                 if(!empty($arr['fail_callback']) && function_exists($arr['fail_callback'])) {
                     $arr['time'] = time();
@@ -147,84 +161,82 @@ class MyEmail
                 continue;
             }
             //发送成功或失败
-            if($this->sendEmail($arr['email'],$arr['name'],$arr['title'],$arr['content']) == true) {
+            if($this->sendEmail($arr['email'],$arr['name'],$arr['title'],$arr['content']) === true) {
                 $data['success']++;
-                $this->delEmailQueue($arr['id']);
+                $delEmails[] = $arr;
                 sleep($info['MAIL_SEND_SPACE']);//停留配置的时间s.
             }
             else{
                 $data['error']++;
-                $pdo->exec("UPDATE wq_email SET error_time=error_time+1 WHERE id={$arr['id']} LIMIT 1;");
+                $this->handle->errorTimePlus($arr);
             }
         }
+
+        $this->handle->delEmailAll($delEmails);
         return $data;
     }
 
     public function dealEmailTimeQueue(){
-        $pdo = $this->pdo;
         $info = $this->mailConf;
 
-        $count = $pdo->query("SELECT COUNT(id) AS num FROM wq_email_time;")->fetch();//获取总的定时邮件。
+        //从驱动中获取即将处理的邮件。
+        $emails = $this->handle->getEmailTimeQueue($info['EMAIL_TIME_MAX']);
         $data = array(
             'success'   =>  0,//发送成功的。
-            'count'     =>  $count['num'],//总邮件。
+            'count'     =>  count($emails),//总邮件。
         );
 
         //加载额外的文件。
         $this->includeExtFile($this->mailConf['MAIL_CON_EXTRA']);
 
-        //从数据库获取邮件。
-        $emails = $pdo->query("SELECT * FROM wq_email_time WHERE send_time<".time()." LIMIT {$info['EMAIL_TIME_MAX']}");
+        //即将批量加入的数据
+        $addData = [];
+        //即将批量删除的数据
+        $delData = [];
+        //批量推迟的数据
+        $delayData = [];
 
-        //添加入即时发送队列的SQL.
-        $st = $pdo->prepare("INSERT INTO wq_email(`email`, `title`, `name`, `content`, `for`, `fail_callback`,`error_time`)
-                    VALUES(:email,:title,:name,:content,:for,:fail_callback,0)");
+        //print_r($emails);
 
-        //删除定时邮件的SQL prepare
-        $st_time = $pdo->prepare("DELETE FROM wq_email_time WHERE id=:id");
         //发送邮件并进行错误处理。
-        while(!!$arr = $emails->fetch()){
+        foreach($emails as $arr){
             //检查$content是否是函数.
             if($arr['is_function']&&function_exists($arr['content'])){//这里主要是担心有用户写私信导致函数执行，repeat需要严格控制，最好限制只能是系统内部创建的。
-                $arr['time'] = time();//执行时间。
+                //$arr['time'] = time();//执行时间。 -- 这句话会导致无法正茬删除定时邮件
                 $content=$arr['content']($arr);
             }else{
                 $content=$arr['content'];
             }
             //处理重复发邮件的情况
             if($arr['repeat']) {
-                $newTime = ($arr['send_time']+86400);
-                $newTime = $newTime < time()?$newTime+86400-(time()-$newTime)%86400:$newTime;//避免短时间内重复发送大量同一邮件。
-                $pdo->exec("UPDATE wq_email_time SET send_time = '" . $newTime . "' WHERE id='{$arr['id']}' LIMIT 1;") or die($pdo->errorInfo());
+                $newTime = ($arr['time']+86400);
+
+                $newTime = $newTime < time()?time()+86400-(time()-$newTime)%86400:$newTime;//避免短时间内重复发送大量同一邮件。
+
+                echo time().' '.$newTime."\n";
+
+                $arr['newTime'] = $newTime;
+                $delayData[] = $arr;
             }
-            else//否则删除。
-                $st_time->execute(array(':id'=>$arr['id']));
+            else {//否则删除。
+                $delData[] = $arr;
+            }
             if(empty($content)) {
                 continue;
             }
-            $temp = array(
-                ':email'    =>  $arr['email'],
-                ':title'    =>  $arr['title'],
-                ':name'     =>  $arr['name'],
-                ':content'  =>  $content,
-                ':for'      =>  $arr['for'],
-                ':fail_callback'=> $arr['fail_callback'],
-            );
-            $st->execute($temp);
+            //这里才更新content，不要放在前边去了，不然delData可能出错。
+            $arr['content'] = $content;
+            $addData[] = $arr;
             $data['success']++;
         }
-        return $data;
-    }
 
-    /**
-     * 删除待发送区的邮件，仅限内部使用。
-     * @param $id
-     * @return int
-     */
-    private function delEmailQueue($id){
-        $pdo = $this->pdo;
-        $id = intval($id);
-        return $pdo->exec("DELETE FROM wq_email WHERE id={$id}");
+        //print_r($delayData);
+
+        //执行批量加入，批量删除
+        $this->handle->addEmailAll($addData);
+        $this->handle->delEmailTimeAll($delData);
+        $this->handle->delayEmailTimeAll($delayData);
+        return $data;
     }
 
     /**
@@ -234,13 +246,7 @@ class MyEmail
      * @return mixed    '删除个数。
      */
     public function delEmailTimeQueue($for,$limit=null){
-        $pdo = $this->pdo;
-        $limit = intval($limit);
-        if($limit > 0)
-            $st = $pdo->prepare("DELETE FROM wq_email_time WHERE `for`=:for LIMIT {$limit}");
-        else
-            $st = $pdo->prepare("DELETE FROM wq_email_time WHERE `for`=:for");
-        return $st->execute(array(':for'=>$for));
+        $this->handle->delEmailTimeByFor($for,$limit);
     }
     /**
      * 正宗发送邮件，使用前，需要引入phpMailer。

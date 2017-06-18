@@ -7,7 +7,7 @@
   
 系统可实现定时发送固定邮件，定时发送动态邮件（调用自定义函数返回内容），通过 表查询 管理定时队列中的邮件。
 
-通过PDO操作MySQL数据库实现邮件定时队列和待发送队列。通过`for`字段可有效区分 项目、发送用户、发送目的，并通过MyEmail类中的delEmailTimeQueue方法进行控制。
+通过PDO操作MySQL数据库（或者使用redis驱动）实现邮件定时队列和待发送队列。通过`for`字段可有效区分 项目、发送用户、发送目的，并通过MyEmail类中的delEmailTimeQueue方法进行控制。
 
 线上案例：[学习计划管理系统](https://github.com/wangerzi/LMS-LearningManagementSystem/tree/master)。
 
@@ -22,8 +22,14 @@
     |---PHPMailer/-PHPMailerAutoload.php      #PHPMailer插件
     |
     |         |--db.php                       #数据库配置
+    |         |
+    |         |--redis.php                    #redis配置
     |---Conf/-|
     |         |--mail.php                     #邮件发送配置。
+    |
+    |           |--Db.php                     #数据库处理驱动
+    |---Driver/-|
+    |           |--Redis.php                  #redis处理驱动
     |
     |--demo/--demo-test.php                   #邮件发送案例
     |
@@ -40,16 +46,23 @@
 
 **Windows:使用 windows.bat 即可**  
 
+    文件实质： php time.php
+
 **Linux:使用 Linux.sh 即可**，若使用 `nohup php time.php &`可实现登出后依旧后台运行
   
-    文件实质： php time.php
+    文件实质： nohup php time.php &
 
 ##### 配置（Conf/mail.php和Conf/db.php）：
 
 1. 需要打开`php.ini`中的 `php_openssl`扩展，否则`SMTP Connect failed`
-1. 创建数据库 `wq_mail`，执行`wq_mail.sql` 初始化表结构。
-1. 在 `Conf/db.php` 中配置数据库连接信息。
 1. 在 `Conf/mail.php`中配置&&用户名、密码、邮件引用，自动调用函数加载 等信息。
+1. 使用mysql等数据库作为处理驱动
+    1. 创建数据库 `wq_mail`，执行`wq_mail.sql` 初始化表结构。
+    1. 在 `Conf/db.php` 中配置数据库连接信息。
+1. 使用redis作为处理驱动
+    1. 在Linux或Windows中开启`redis-server`
+    2. 在`Conf/redis.php`中配置redis服务器地址和密码等信息。
+    3. 在`Conf/mail.php`中配置`MAIL_DRIVER=>'redis'`。
 
 ##### 调用（更多请看demo/demo-test.php）：
 
@@ -76,12 +89,14 @@
 1. 为了避免重复发送邮件 和 端口冲突等问题，time.php只能用命令行执行，无法用HTTP访问。
 1. 如果您的发送内容是某函数返回值，并且该函数基于 Thinkphp等框架实现，请在`Conf/mail.php`中配置`MAIL_CON_EXTRA`中配置入口文件（`index.php`）以及函数所在路径（`Common/function.php`）。
 1. 如果您的发送内容是某函数返回值，并且该函数基于 Thinkphp等框架实现，请在`Conf/mail.php`中配置`MAIL_CON_EXTRA`中配置入口文件（`index.php`）或者核心文件(`../ThinkPHP/ThinkPHP.class.php`)+函数所在路径（`Common/function.php`）。
-    1. 对于使用框架的用户，个人建议引入核心文件，因为引入入口文件可能会因为静态缓存等原因导致脚本停止运行。
+    1. ~~对于使用框架的用户，个人建议引入核心文件，因为引入入口文件可能会因为静态缓存等原因导致脚本停止运行。~~
+    1. 经过实际的使用，还是建议使用框架入口文件，因为引入核心文件很容易出现框架的自动加载文件出错，导致程序终止运行。
+    1. 当使用框架自带缓存的时候，请先将缓存关掉，避免程序终止，程序开启成功后即可再次开启缓存。
 
             配置样例('Conf/mail.php'):
             ...
             ...
-            'MAIL_CON_EXTRA'    =>  '../ThinkPHP/ThinkPHP.class.php,../LMS/Common/functions.php',
+            'MAIL_CON_EXTRA'    =>  '../index.php',
             ...
             ...
     1. 注意：如果引入入口文件（`index.php`），则需要在`index.php`中加入`chdir(dirname(__FILE__))`改变include相对定位点，否则加载出错。
@@ -95,6 +110,12 @@
             ...
 
 ## Version
+
+##### 1.0.3			`2017年06月18日`
+
+1. UPG:程序支持redis处理了，如果有redis服务的话，可在Conf/mail.php中调整参数`MAIL_DRIVER=>'redis'`，然后编辑`Conf/redis.php`写入连接信息即可。
+1. OPT:程序结构有所调整,`Driver/`目录下存放Db.php和Redis.php，分别为数据库和redis的处理驱动。
+1. BUG:处理了重复引入自身配置，驱动文件报错的问题。
 
 ##### 1.0.2			`2017年05月8日`
 1. BUG:修复普通定时邮件重复发送的BUG（需要更改wq_email_time中repeat,is_function的数据类型）。

@@ -1,1 +1,1 @@
-php time.php
+nohup php time.php -on &
